@@ -320,7 +320,8 @@ class BBoxHead(BaseModule):
                    img_shape,
                    scale_factor,
                    rescale=False,
-                   cfg=None):
+                   cfg=None,
+                   feats=None):
         """Transform network output for a batch into bbox predictions.
 
         Args:
@@ -352,6 +353,8 @@ class BBoxHead(BaseModule):
         else:
             scores = F.softmax(
                 cls_score, dim=-1) if cls_score is not None else None
+        
+        # print("In get bboxes: {}, {}".format(cfg is None, bbox_pred.shape))
         # bbox_pred would be None in some detector when with_reg is False,
         # e.g. Grid R-CNN.
         if bbox_pred is not None:
@@ -371,9 +374,15 @@ class BBoxHead(BaseModule):
         if cfg is None:
             return bboxes, scores
         else:
-            det_bboxes, det_labels = multiclass_nms(bboxes, scores,
+            det_bboxes, det_labels, indices = multiclass_nms(bboxes, scores,
                                                     cfg.score_thr, cfg.nms,
-                                                    cfg.max_per_img)
+                                                    cfg.max_per_img, return_inds=True)
+            
+            #print("in multi class: {}, {}, {}, {}".format(det_bboxes.shape, det_labels.shape, indices.shape, scores.shape))
+            if feats is not None:
+                # print(indices.shape, torch.max(indices), feats.shape, scores.shape)
+                feats = feats[(indices / scores.shape[1]).long()]
+                return det_bboxes, det_labels, feats
 
             return det_bboxes, det_labels
 

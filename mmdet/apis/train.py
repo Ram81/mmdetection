@@ -215,6 +215,7 @@ def train_detector(model,
             **cfg.data.get('val_dataloader', {})
         }
         # Support batch_size > 1 in validation
+        print("val: {} - {}".format(distributed, val_dataloader_args['samples_per_gpu']))
 
         if val_dataloader_args['samples_per_gpu'] > 1:
             # Replace 'ImageToTensor' to 'DefaultFormatBundle'

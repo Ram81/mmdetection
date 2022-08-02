@@ -122,10 +122,11 @@ class StandardRoIHead(BaseRoIHead, BBoxTestMixin, MaskTestMixin):
             x[:self.bbox_roi_extractor.num_inputs], rois)
         if self.with_shared_head:
             bbox_feats = self.shared_head(bbox_feats)
-        cls_score, bbox_pred = self.bbox_head(bbox_feats)
+        cls_score, bbox_pred, bbox_fc_feats = self.bbox_head(bbox_feats)
 
         bbox_results = dict(
-            cls_score=cls_score, bbox_pred=bbox_pred, bbox_feats=bbox_feats)
+            cls_score=cls_score, bbox_pred=bbox_pred, bbox_feats=bbox_feats,
+            bbox_fc_feats=bbox_fc_feats)
         return bbox_results
 
     def _bbox_forward_train(self, x, sampling_results, gt_bboxes, gt_labels,
@@ -249,22 +250,34 @@ class StandardRoIHead(BaseRoIHead, BBoxTestMixin, MaskTestMixin):
             of tuple is bbox results, second element is mask results.
         """
         assert self.with_bbox, 'Bbox head must be implemented.'
+        #print("simple test")
 
-        det_bboxes, det_labels = self.simple_test_bboxes(
+        det_bboxes, det_labels, det_feats = self.simple_test_bboxes(
             x, img_metas, proposal_list, self.test_cfg, rescale=rescale)
 
+        #print("len bbox results: {},, {}".format(len(det_bboxes[0]), len(det_feats)))
         bbox_results = [
             bbox2result(det_bboxes[i], det_labels[i],
                         self.bbox_head.num_classes)
             for i in range(len(det_bboxes))
         ]
 
+        feat_results = []
+        for i in range(len(det_bboxes)):
+            if det_bboxes[i].shape[0] == 0:
+                feat_results.append(
+                        [[] for _ in range(self.bbox_head.num_classes)])
+            else:
+                feats = det_feats[i].detach().cpu().numpy()
+                labels = det_labels[i].detach().cpu().numpy()
+                feat_results.append([feats[labels == j, :] for j in range(self.bbox_head.num_classes)])
+
         if not self.with_mask:
-            return bbox_results
+            return list(zip(bbox_results, feat_results,))
         else:
             segm_results = self.simple_test_mask(
                 x, img_metas, det_bboxes, det_labels, rescale=rescale)
-            return list(zip(bbox_results, segm_results))
+            return list(zip(bbox_results, segm_results, feat_results,))
 
     def aug_test(self, x, proposal_list, img_metas, rescale=False):
         """Test with augmentations.

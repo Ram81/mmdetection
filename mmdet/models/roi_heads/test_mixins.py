@@ -93,9 +93,13 @@ class BBoxTestMixin:
         # split batch bbox prediction back to each image
         cls_score = bbox_results['cls_score']
         bbox_pred = bbox_results['bbox_pred']
+        bbox_feat = bbox_results['bbox_fc_feats']
+        #print("bbox feat: {}, {}".format(bbox_feat.shape, bbox_pred.shape))
         num_proposals_per_img = tuple(len(p) for p in proposals)
         rois = rois.split(num_proposals_per_img, 0)
         cls_score = cls_score.split(num_proposals_per_img, 0)
+        bbox_feat = bbox_feat.split(num_proposals_per_img, 0)
+        #print("bbox feat after split: {}, {}".format(bbox_feat[0].shape, cls_score[0].shape))
 
         # some detector with_reg is False, bbox_pred will be None
         if bbox_pred is not None:
@@ -112,8 +116,10 @@ class BBoxTestMixin:
         # apply bbox post-processing to each image individually
         det_bboxes = []
         det_labels = []
+        det_feats = []
         for i in range(len(proposals)):
             if rois[i].shape[0] == 0:
+                print("props")
                 # There is no proposal in the single image
                 det_bbox = rois[i].new_zeros(0, 5)
                 det_label = rois[i].new_zeros((0, ), dtype=torch.long)
@@ -123,17 +129,21 @@ class BBoxTestMixin:
                         (0, self.bbox_head.fc_cls.out_features))
 
             else:
-                det_bbox, det_label = self.bbox_head.get_bboxes(
+                # print("get boxes")
+                det_bbox, det_label, feats = self.bbox_head.get_bboxes(
                     rois[i],
                     cls_score[i],
                     bbox_pred[i],
                     img_shapes[i],
                     scale_factors[i],
                     rescale=rescale,
-                    cfg=rcnn_test_cfg)
+                    cfg=rcnn_test_cfg,
+                    feats=bbox_feat[i],)
             det_bboxes.append(det_bbox)
             det_labels.append(det_label)
-        return det_bboxes, det_labels
+            # print("det bbox: {}, {}, {}, {}".format(det_bbox.shape, det_label.shape, feats.shape, bbox_feat[i].shape))
+            det_feats.append(feats)
+        return det_bboxes, det_labels, det_feats
 
     def aug_test_bboxes(self, feats, img_metas, proposal_list, rcnn_test_cfg):
         """Test det bboxes with test time augmentation."""

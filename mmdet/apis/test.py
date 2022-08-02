@@ -27,6 +27,8 @@ def single_gpu_test(model,
     for i, data in enumerate(data_loader):
         with torch.no_grad():
             result = model(return_loss=False, rescale=True, **data)
+            #print("len: {}".format(len(result[0][0][0])))
+            #print(result[0][0][0][0].shape, result[0][0][0][1].shape)
 
         batch_size = len(result)
         if show or out_dir:
@@ -63,7 +65,7 @@ def single_gpu_test(model,
         # encode mask results
         if isinstance(result[0], tuple):
             result = [(bbox_results, encode_mask_results(mask_results))
-                      for bbox_results, mask_results in result]
+                      for bbox_results, mask_results, feats in result]
         # This logic is only used in panoptic segmentation test.
         elif isinstance(result[0], dict) and 'ins_results' in result[0]:
             for j in range(len(result)):

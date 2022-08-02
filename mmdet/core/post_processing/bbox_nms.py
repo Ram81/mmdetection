@@ -11,7 +11,8 @@ def multiclass_nms(multi_bboxes,
                    nms_cfg,
                    max_num=-1,
                    score_factors=None,
-                   return_inds=False):
+                   return_inds=False,
+                   return_keep=False):
     """NMS for multi-class bboxes.
 
     Args:
@@ -45,9 +46,11 @@ def multiclass_nms(multi_bboxes,
     labels = torch.arange(num_classes, dtype=torch.long, device=scores.device)
     labels = labels.view(1, -1).expand_as(scores)
 
+    #print("before flattened: {}".format(bboxes.shape))
     bboxes = bboxes.reshape(-1, 4)
     scores = scores.reshape(-1)
     labels = labels.reshape(-1)
+    #print("flattened: {}".format(bboxes.shape))
 
     if not torch.onnx.is_in_onnx_export():
         # NonZero not supported  in TensorRT
@@ -85,12 +88,15 @@ def multiclass_nms(multi_bboxes,
 
     dets, keep = batched_nms(bboxes, scores, labels, nms_cfg)
 
+    #print("det: {}, keep: {}, max: {}, mask: {}, inds: {}".format(dets.shape, keep.shape, keep, valid_mask.shape, inds.shape))
     if max_num > 0:
         dets = dets[:max_num]
         keep = keep[:max_num]
 
     if return_inds:
         return dets, labels[keep], inds[keep]
+    elif return_keep:
+        return dets, labels[keep], keep
     else:
         return dets, labels[keep]
 

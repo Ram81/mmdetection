@@ -14,6 +14,8 @@ from mmdet.datasets import replace_ImageToTensor
 from mmdet.datasets.pipelines import Compose
 from mmdet.models import build_detector
 
+import time
+
 
 def init_detector(config, checkpoint=None, device='cuda:0', cfg_options=None):
     """Initialize a detector from config file.
@@ -120,6 +122,8 @@ def inference_detector(model, imgs):
     cfg.data.test.pipeline = replace_ImageToTensor(cfg.data.test.pipeline)
     test_pipeline = Compose(cfg.data.test.pipeline)
 
+    st_time = time.time()
+
     datas = []
     for img in imgs:
         # prepare data
@@ -132,7 +136,11 @@ def inference_detector(model, imgs):
         # build the data pipeline
         data = test_pipeline(data)
         datas.append(data)
+    bt_time = time.time() - st_time
+    # print("mmdet batch time: {}".format(bt_time))
 
+
+    st_time = time.time()
     data = collate(datas, samples_per_gpu=len(imgs))
     # just get the actual data from DataContainer
     data['img_metas'] = [img_metas.data[0] for img_metas in data['img_metas']]
@@ -145,15 +153,22 @@ def inference_detector(model, imgs):
             assert not isinstance(
                 m, RoIPool
             ), 'CPU inference with RoIPool is not supported currently.'
+    
+    colt_time = time.time() - st_time
+    # print("mmdet collate time: {}".format(colt_time))
 
+    st_time = time.time()
     # forward the model
     with torch.no_grad():
         results = model(return_loss=False, rescale=True, **data)
 
+    et_time = time.time() - st_time 
+    # print("mmdet inference time: {}".format(et_time))
+
     if not is_batch:
         return results[0]
     else:
-        return results
+        return results, bt_time, colt_time, et_time
 
 
 async def async_inference_detector(model, imgs):

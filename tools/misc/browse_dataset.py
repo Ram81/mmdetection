@@ -116,6 +116,10 @@ def main():
             # If you need to show the bounding boxes,
             # please comment the following line
             gt_bboxes = None
+        gt_masks = None
+        
+        print("\n\nclasses: {}, ppaleettee: {}\n\n".format(len(dataset.CLASSES), len(dataset.PALETTE)))
+        print(gt_labels)
 
         imshow_det_bboxes(
             item['img'],
@@ -126,9 +130,10 @@ def main():
             show=not args.not_show,
             wait_time=args.show_interval,
             out_file=filename,
-            bbox_color=dataset.PALETTE,
+            bbox_color="random", #dataset.PALETTE,
             text_color=(200, 200, 200),
-            mask_color=dataset.PALETTE)
+            mask_color="random", #dataset.PALETTE
+            )
 
         progress_bar.update()
 

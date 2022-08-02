@@ -42,6 +42,7 @@ def get_palette(palette, num_classes):
         palette = np.random.randint(0, 256, size=(num_classes, 3))
         np.random.set_state(state)
         dataset_palette = [tuple(c) for c in palette]
+        #print("\n\n\n paleettttee {} \n\n\n".format(len(dataset_palette)))
     elif palette == 'coco':
         from mmdet.datasets import CocoDataset, CocoPanopticDataset
         dataset_palette = CocoDataset.PALETTE
@@ -57,7 +58,7 @@ def get_palette(palette, num_classes):
         dataset_palette = [mmcv.color_val(palette)[::-1]] * num_classes
     else:
         raise TypeError(f'Invalid type for palette: {type(palette)}')
-
+    # print("\n\n\n paleettttee {} - {} \n\n\n".format(len(dataset_palette), num_classes))
     assert len(dataset_palette) >= num_classes, \
         'The length of palette should not be less than `num_classes`.'
     return dataset_palette

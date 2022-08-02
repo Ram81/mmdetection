@@ -170,6 +170,9 @@ class ConvFCBBoxHead(BBoxHead):
 
             for fc in self.shared_fcs:
                 x = self.relu(fc(x))
+        
+        # bbox feats
+        bbox_feats = x.clone()
         # separate branches
         x_cls = x
         x_reg = x
@@ -194,7 +197,7 @@ class ConvFCBBoxHead(BBoxHead):
 
         cls_score = self.fc_cls(x_cls) if self.with_cls else None
         bbox_pred = self.fc_reg(x_reg) if self.with_reg else None
-        return cls_score, bbox_pred
+        return cls_score, bbox_pred, bbox_feats
 
 
 @HEADS.register_module()

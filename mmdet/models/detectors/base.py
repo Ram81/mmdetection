@@ -144,7 +144,8 @@ class BaseDetector(BaseModule, metaclass=ABCMeta):
             # proposals.
             if 'proposals' in kwargs:
                 kwargs['proposals'] = kwargs['proposals'][0]
-            return self.simple_test(imgs[0], img_metas[0], **kwargs)
+            results = self.simple_test(imgs[0], img_metas[0], **kwargs)
+            return results
         else:
             assert imgs[0].size(0) == 1, 'aug test does not support ' \
                                          'inference with batch size ' \
